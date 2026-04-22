@@ -21,7 +21,7 @@ append_if_missing() {
 }
 
 append_if_missing "source /opt/ros/${ROS_DISTRO}/setup.bash" "$BASHRC"
-append_if_missing "alias carla='cd $CARLA_ROOT && ./CarlaUE4.sh'" "$BASHRC"
+append_if_missing "alias carla='cd $CARLA_ROOT && ./CarlaUE4.sh -quality-level=Low -RenderOffScreen'" "$BASHRC"
 append_if_missing "alias bros='cd ${WS} && colcon build'" "$BASHRC"
 append_if_missing "alias dros='cd ${WS} && rosdep update && rosdep install --from-paths src --ignore-src -r -y'" "$BASHRC"
 append_if_missing "alias sros='source /opt/ros/${ROS_DISTRO}/setup.bash && source ${WS}/install/setup.bash'" "$BASHRC"
