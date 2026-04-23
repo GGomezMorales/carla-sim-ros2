@@ -1,4 +1,3 @@
-
 # CARLA ROS 2 Simulation Environment
 
 ## Overview
@@ -10,7 +9,8 @@ Instead of storing a full ROS workspace in the repository, it builds a ready-to-
 - pulls a **CARLA 0.9.16** simulator base image,
 - installs ROS 2 Humble development dependencies,
 - clones the `ros-bridge` repository (the `leaderboard-2.0` branch, which targets CARLA 0.9.15+),
-- installs the CARLA 0.9.16 Python API wheel,
+- installs the CARLA 0.9.16 Python API wheel and the `transforms3d` package,
+- applies a patch for a known upstream bug in `pcl_recorder` ([#737](https://github.com/carla-simulator/ros-bridge/issues/737)),
 - prepares the environment with helpful shell aliases for day-to-day development.
 
 The result is a reproducible setup for experimenting with CARLA + ROS 2 without manually assembling the simulator, ROS dependencies, and bridge packages on the host machine.
@@ -57,12 +57,12 @@ CONTAINER_NAME="carla-sim-ros2-container"
 ROS_NETWORK="host"
 ```
 
-| Variable              | Purpose                                                                       |
-| --------------------- | ----------------------------------------------------------------------------- |
-| `CARLA_IMAGE`       | The CARLA Docker image used as the simulator base                             |
+| Variable            | Purpose                                                                     |
+| ------------------- | --------------------------------------------------------------------------- |
+| `CARLA_IMAGE`       | The CARLA Docker image used as the simulator base                           |
 | `WS_ROS`            | Name of the ROS workspace directory inside the container (`/carla_ws`)      |
-| `DOCKER_IMAGE_NAME` | Tag given to the built Docker image                                           |
-| `CONTAINER_NAME`    | Name assigned to the running container                                        |
+| `DOCKER_IMAGE_NAME` | Tag given to the built Docker image                                         |
+| `CONTAINER_NAME`    | Name assigned to the running container                                      |
 | `ROS_NETWORK`       | Docker network mode (`host` gives the container access to the host network) |
 
 > **Note:** `config.sh` defines `CARLA_IMAGE`, but the CARLA version is also hardcoded in the `Dockerfile` via the `CARLA_VERSION` build argument. If you change the version, update both files to keep them consistent.
@@ -99,8 +99,6 @@ Uses the default Docker runtime with `/dev/dri` device access for software rende
 ./scripts/run_nvidia.sh
 ```
 
-Passes `--runtime=nvidia --gpus all` and exposes full NVIDIA driver capabilities. Use this when running CARLA with GPU rendering.
-
 Both scripts mount the X11 socket and set the required display environment variables so graphical applications (CARLA, RViz2) can render on the host screen.
 
 ---
@@ -111,8 +109,6 @@ Both scripts mount the X11 socket and set the required display environment varia
 ./scripts/bash.sh
 ```
 
-This runs `docker exec -it <container> bash` against the container started in step 2.
-
 ---
 
 ### 4. Set up and build the ROS workspace
@@ -120,9 +116,9 @@ This runs `docker exec -it <container> bash` against the container started in st
 Inside the container, run the following once to install dependencies and build:
 
 ```bash
-sros   # source ROS 2 Humble and the workspace overlay
 dros   # install missing ROS dependencies via rosdep
 bros   # build the workspace with colcon
+sros   # source ROS 2 Humble and the workspace overlay
 ```
 
 Then source the workspace again to pick up the freshly built packages:
@@ -153,14 +149,15 @@ The bridge connects to `localhost:2000` by default.
 
 ## Shell aliases
 
-The following aliases are added to the container user's `.bashrc` by `autostart.sh`:
+The following aliases are added to both the `carla` user's and `root`'s `.bashrc` by `autostart.sh`:
 
-| Alias     | Expands to                                                                              | Purpose                              |
-| --------- | --------------------------------------------------------------------------------------- | ------------------------------------ |
-| `carla` | `cd /home/carla && ./CarlaUE4.sh -quality-level=Low -RenderOffScreen`                 | Start the CARLA simulator            |
-| `bros`  | `cd /carla_ws && colcon build`                                                        | Build the ROS workspace              |
-| `dros`  | `cd /carla_ws && rosdep update && rosdep install --from-paths src --ignore-src -r -y` | Install ROS dependencies             |
-| `sros`  | `source /opt/ros/humble/setup.bash && source /carla_ws/install/setup.bash`            | Source ROS and the workspace overlay |
+| Alias   | Expands to                                                                        | Purpose                               |
+| ------- | --------------------------------------------------------------------------------- | ------------------------------------- |
+| `carla` | `cd $CARLA_ROOT && ./CarlaUE4.sh -quality-level=Low -RenderOffScreen`             | Start the CARLA simulator             |
+| `bros`  | `cd ${WS} && colcon build`                                                        | Build the ROS workspace               |
+| `dros`  | `cd ${WS} && rosdep update && rosdep install --from-paths src --ignore-src -r -y` | Install ROS dependencies              |
+| `sros`  | `source /opt/ros/${ROS_DISTRO}/setup.bash && source ${WS}/install/setup.bash`     | Source ROS and the workspace overlay  |
+| `apt`   | `sudo apt`                                                                        | Run apt without typing sudo each time |
 
 ---
 
@@ -202,6 +199,7 @@ The run scripts start the container with:
   -v $(pwd)/my_packages:/carla_ws/src/my_packages
   ```
 - The `leaderboard-2.0` bridge branch supports CARLA 0.9.15 and 0.9.16. Using the `main` branch of `ros-bridge` against this image will fail at startup with a version mismatch error.
+- There is a known upstream bug in `ros-bridge` ([#737](https://github.com/carla-simulator/ros-bridge/issues/737)) where `pcl_recorder` is missing a `tf2_eigen` dependency and uses a deprecated header. The `Dockerfile` patches both automatically during the build — no manual action is needed.
 
 ---
 
