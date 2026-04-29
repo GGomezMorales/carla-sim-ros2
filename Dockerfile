@@ -23,15 +23,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-opencv \
     python3-pygame \
     python3-pip \
+    ca-certificates \
     iputils-ping \
     net-tools \
+    curl \
     git \
     nano
 
 RUN python3 -m pip install \
     ${CARLA_ROOT}/PythonAPI/carla/dist/carla-${CARLA_VERSION}-cp310-cp310-manylinux_2_31_x86_64.whl
 
-RUN pip3 install -U transforms3d
+RUN pip3 install -U transforms3d networkx
 
 RUN mkdir -p ${WS}/src && cd ${WS}/src \
     && git clone --recurse-submodules \
@@ -56,16 +58,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY ./autostart.sh ${WS}/autostart.sh
 RUN chmod +x ${WS}/autostart.sh \
     && ${WS}/autostart.sh
-
-# For testing purposes
-RUN apt-get install -y sudo \
-    && echo "${USERNAME} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
-
-# Fix issue https://github.com/carla-simulator/ros-bridge/issues/737 : tf2_eigen dependency + obsolete header
-RUN sed -i 's/pcl_conversions tf2 tf2_ros)/pcl_conversions tf2 tf2_ros tf2_eigen)/g' \
-    ${WS}/src/ros-bridge/pcl_recorder/CMakeLists.txt \
-    && sed -i 's|tf2_eigen/tf2_eigen.h|tf2_eigen/tf2_eigen.hpp|g' \
-    ${WS}/src/ros-bridge/pcl_recorder/include/PclRecorderROS2.h
 
 USER ${USERNAME}
 
