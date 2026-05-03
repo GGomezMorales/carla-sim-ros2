@@ -12,7 +12,8 @@ Instead of storing a full ROS workspace in the repository, it builds a ready-to-
 - installs the CARLA 0.9.16 Python API wheel plus the Python packages needed by the bridge (`transforms3d`, `networkx`),
 - applies a patch for a known upstream bug in `pcl_recorder` ([#737](https://github.com/carla-simulator/ros-bridge/issues/737)),
 - applies small compatibility patches for `carla_waypoint_publisher` and `carla_ad_agent/local_planner` so the simple A → B navigation flow works with CARLA 0.9.16,
-- prepares the environment with helpful shell aliases for day-to-day development.
+- includes local ROS 2 packages under `carla_pkgs_ros2`,
+- prepares the environment with helpful shell aliases and a `carla_ros2` helper command for day-to-day development.
 
 The result is a reproducible setup for experimenting with CARLA + ROS 2 without manually assembling the simulator, ROS dependencies, and bridge packages on the host machine.
 
@@ -24,14 +25,17 @@ The result is a reproducible setup for experimenting with CARLA + ROS 2 without 
 
 ```
 carla-sim-ros2/
-├── Dockerfile          # Builds the CARLA + ROS 2 image
-├── config.sh           # Central configuration (image name, container name, workspace)
-├── autostart.sh        # Shell aliases and environment setup inside the container
+├── Dockerfile              # Builds the CARLA + ROS 2 image
+├── config.sh               # Central configuration (image name, container name, workspace)
+├── autostart.sh            # Shell aliases, helper commands, and compatibility patches
+├── carla_pkgs_ros2/        # Local ROS 2 packages mounted into the container workspace
+│   ├── carla_bringup/      # Launches bridge, waypoint publisher, and RViz2 together
+│   └── carla_rviz2/        # RViz2 launch file and CARLA RViz configuration
 └── scripts/
-    ├── build.sh        # Builds the Docker image
-    ├── run_docker.sh   # Runs the container (standard graphics)
-    ├── run_nvidia.sh   # Runs the container (NVIDIA GPU)
-    └── bash.sh         # Opens a shell in the running container
+    ├── build.sh            # Builds the Docker image
+    ├── run_docker.sh       # Runs the container (standard graphics)
+    ├── run_nvidia.sh       # Runs the container (NVIDIA GPU)
+    └── bash.sh             # Opens a shell in the running container
 ```
 
 ---
@@ -58,13 +62,13 @@ CONTAINER_NAME="carla-sim-ros2-container"
 ROS_NETWORK="host"
 ```
 
-| Variable            | Purpose                                                                     |
-| ------------------- | --------------------------------------------------------------------------- |
-| `CARLA_IMAGE`       | The CARLA Docker image used as the simulator base                           |
-| `WS_ROS`            | Name of the ROS workspace directory inside the container (`/carla_ws`)      |
-| `DOCKER_IMAGE_NAME` | Tag given to the built Docker image                                         |
-| `CONTAINER_NAME`    | Name assigned to the running container                                      |
-| `ROS_NETWORK`       | Docker network mode (`host` gives the container access to the host network) |
+| Variable            | Purpose                                                                           |
+| ------------------- | --------------------------------------------------------------------------------- |
+| `CARLA_IMAGE`       | The CARLA Docker image used as the simulator base                                 |
+| `WS_ROS`            | Name of the ROS workspace directory inside the container (`/carla_ws`)            |
+| `DOCKER_IMAGE_NAME` | Tag given to the built Docker image                                               |
+| `CONTAINER_NAME`    | Name assigned to the running container                                            |
+| `ROS_NETWORK`       | Intended Docker network mode; the provided run scripts currently use `--net=host` |
 
 > **Note:** `config.sh` defines `CARLA_IMAGE`, but the CARLA version is also hardcoded in the `Dockerfile` via the `CARLA_VERSION` build argument. If you change the version, update both files to keep them consistent.
 
@@ -74,13 +78,19 @@ ROS_NETWORK="host"
 
 The following aliases are added to both the `carla` user's and `root`'s `.bashrc` by `autostart.sh`:
 
-| Alias   | Expands to                                                                        | Purpose                               |
-| ------- | --------------------------------------------------------------------------------- | ------------------------------------- |
-| `carla` | `cd $CARLA_ROOT && ./CarlaUE4.sh -quality-level=Low -RenderOffScreen`             | Start the CARLA simulator             |
-| `bros`  | `cd ${WS} && colcon build`                                                        | Build the ROS workspace               |
-| `dros`  | `cd ${WS} && rosdep update && rosdep install --from-paths src --ignore-src -r -y` | Install ROS dependencies              |
-| `sros`  | `source /opt/ros/${ROS_DISTRO}/setup.bash && source ${WS}/install/setup.bash`     | Source ROS and the workspace overlay  |
-| `apt`   | `sudo apt`                                                                        | Run apt without typing sudo each time |
+| Alias   | Expands to                                                                        | Purpose                              |
+| ------- | --------------------------------------------------------------------------------- | ------------------------------------ |
+| `carla` | `cd $CARLA_ROOT && ./CarlaUE4.sh -quality-level=Low -RenderOffScreen`             | Start the CARLA simulator            |
+| `bros`  | `cd ${WS} && colcon build`                                                        | Build the ROS workspace              |
+| `dros`  | `cd ${WS} && rosdep update && rosdep install --from-paths src --ignore-src -r -y` | Install ROS dependencies             |
+| `sros`  | `source /opt/ros/${ROS_DISTRO}/setup.bash && source ${WS}/install/setup.bash`     | Source ROS and the workspace overlay |
+
+`autostart.sh` also adds a small helper function with shell completion:
+
+| Command              | What it does                                                                                       |
+| -------------------- | -------------------------------------------------------------------------------------------------- |
+| `carla_ros2 bringup` | Builds, sources, and launches `carla_bringup`, including the bridge, waypoint publisher, and RViz2 |
+| `carla_ros2 rviz2`   | Builds, sources, and launches only the RViz2 configuration from `carla_rviz2`                      |
 
 ---
 
@@ -89,17 +99,20 @@ The following aliases are added to both the `carla` user's and `root`'s `.bashrc
 Inside the container:
 
 ```
-/carla_ws/              ← ROS workspace (WS_ROS)
+/carla_ws/                    ← ROS workspace (WS_ROS)
 └── src/
-    └── ros-bridge/     ← Cloned from carla-simulator/ros-bridge (leaderboard-2.0 branch)
+    ├── ros-bridge/           ← Cloned from carla-simulator/ros-bridge (leaderboard-2.0 branch)
+    └── carla_pkgs_ros2/      ← Mounted from this repository by the run scripts
+        ├── carla_bringup/    ← Combined launch for bridge, waypoint publisher, and RViz2
+        └── carla_rviz2/      ← RViz2 launch file and configuration
 
-/home/carla/            ← CARLA installation (CARLA_ROOT)
+/home/carla/                  ← CARLA installation (CARLA_ROOT)
 └── PythonAPI/
     └── carla/
-        └── dist/       ← carla-0.9.16-*.whl (installed during image build)
+        └── dist/             ← carla-0.9.16-*.whl (installed during image build)
 ```
 
-You can add your own ROS 2 packages under `/carla_ws/src/` and rebuild with `bros`.
+The provided run scripts mount `./carla_pkgs_ros2` from the host into `/carla_ws/src/carla_pkgs_ros2`, so changes to those local packages persist outside the container. You can add your own ROS 2 packages under `/carla_ws/src/` and rebuild with `bros`.
 
 ---
 
@@ -179,6 +192,20 @@ ros2 launch carla_ros_bridge carla_ros_bridge_with_example_ego_vehicle.launch.py
 
 The bridge connects to `localhost:2000` by default.
 
+You can also use the project bringup helper after starting CARLA:
+
+```bash
+carla_ros2 bringup
+```
+
+This command builds the workspace, sources the overlay, launches the example ego vehicle bridge, starts the waypoint publisher after a short delay, and opens RViz2 with the included CARLA configuration.
+
+To open only RViz2 with the project configuration, use:
+
+```bash
+carla_ros2 rviz2
+```
+
 ---
 
 ### 6. Simple A → B navigation example
@@ -202,6 +229,8 @@ ros2 launch carla_ros_bridge carla_ros_bridge_with_example_ego_vehicle.launch.py
 ```
 
 Leave this terminal running.
+
+_Alternative_: if you use `carla_ros2 bringup`, this bridge and the waypoint publisher are started together, and RViz2 opens automatically. In that case, you can skip Terminal 2 and Terminal 3 below.
 
 _Optional_: Check that the ego vehicle exists:
 
@@ -287,7 +316,7 @@ The run scripts start the container with:
 ## Known limitations
 
 - The run scripts are written for an **X11-based Linux workflow**. Wayland or macOS users may need to adjust the display forwarding.
-- The `--rm` flag means **any changes made inside the container are lost when it stops**. Mount a host directory if you need to persist work:
+- The `--rm` flag means **any changes made only inside the container are lost when it stops**. The provided `carla_pkgs_ros2` directory is already mounted from the host, but mount another host directory if you need to persist additional work:
   ```bash
   -v $(pwd)/my_packages:/carla_ws/src/my_packages
   ```
