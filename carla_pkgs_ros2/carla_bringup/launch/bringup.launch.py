@@ -1,5 +1,5 @@
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, TimerAction
+from launch.actions import DeclareLaunchArgument, ExecuteProcess, IncludeLaunchDescription, TimerAction
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
@@ -35,7 +35,6 @@ def generate_launch_description():
     # <!-- Shared packages -->
     carla_bringup_pkg = FindPackageShare('carla_bringup')
     carla_rviz2_pkg = FindPackageShare('carla_rviz2')
-    carla_ros_bridge_pkg = FindPackageShare('carla_ros_bridge')
     carla_waypoint_publisher_pkg = FindPackageShare('carla_waypoint_publisher')
     ###########################################################################################################
 
@@ -62,9 +61,10 @@ def generate_launch_description():
         ]
     )
 
-    ego_vehicle_launch_path = PathJoinSubstitution(
+    carla_ros_bridge_with_example_ego_vehicle_launch_path = PathJoinSubstitution(
         [
-            carla_ros_bridge_pkg,
+            carla_bringup_pkg,
+            'launch',
             'carla_ros_bridge_with_example_ego_vehicle.launch.py'
         ]
     )
@@ -94,10 +94,10 @@ def generate_launch_description():
     )
     ###########################################################################################################
 
-    # <!-- Ego vehicle launcher -->
-    ego_vehicle_launch = IncludeLaunchDescription(
+    # <!-- carla_ros_bridge_with_example_ego_vehicle launcher -->
+    carla_ros_bridge_with_example_ego_vehicle_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            ego_vehicle_launch_path
+            carla_ros_bridge_with_example_ego_vehicle_launch_path
         ),
         launch_arguments={
             'town': town,
@@ -119,6 +119,30 @@ def generate_launch_description():
         ]
     )
 
+    # <!-- Target speed publisher -->
+    target_speed_pub = ExecuteProcess(
+        cmd=[
+            'ros2', 'topic', 'pub',
+            '/carla/ego_vehicle/target_speed',
+            'std_msgs/msg/Float64',
+            '{data: 10.0}',
+            '-r', '1'
+        ],
+        output='screen'
+    )
+
+    # <!-- Target point publisher -->
+    target_point_pub = ExecuteProcess(
+        cmd=[
+            'ros2', 'topic', 'pub',
+            '/carla/ego_vehicle/goal',
+            'geometry_msgs/msg/PoseStamped',
+            "{header: {frame_id: 'map'}, pose: {position: {x: 50.0, y: 0.0, z: 0.0}, orientation: {w: 1.0}}}",
+            '-r', '0.05'
+        ],
+        output='screen'
+    )
+
     # <!-- RViz2 launcher -->
     rviz_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -137,7 +161,9 @@ def generate_launch_description():
             declare_rviz_config_cmd,
             declare_town_cmd,
             rviz_launch,
-            ego_vehicle_launch,
-            delayed_waypoint_publisher_launch
+            carla_ros_bridge_with_example_ego_vehicle_launch,
+            delayed_waypoint_publisher_launch,
+            target_speed_pub,
+            target_point_pub
         ]
     )
