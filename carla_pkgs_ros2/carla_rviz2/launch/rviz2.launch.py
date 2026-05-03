@@ -6,23 +6,29 @@ from launch_ros.substitutions import FindPackageShare
 
 
 def generate_launch_description():
-    """Create the launch description for starting RViz2 with carla_rviz2 settings.
+    """
+    Create the launch description for starting RViz2.
 
-    This launch file declares configurable arguments for simulation time and
-    the RViz configuration file, then starts an ``rviz2`` node using the
-    selected configuration. By default, it loads ``carla_rviz2` from the
-    ``carla_rviz2`` package and enables simulated time.
+    The generated launch description declares the RViz runtime arguments,
+    resolves the default RViz configuration path from this package's share
+    directory, and starts the ``rviz2`` executable with the selected
+    configuration file.
 
     Launch arguments:
-        use_sim_time: Whether RViz2 should use simulated time. Defaults to
-            ``true``.
-        rviz_config: Path to the RViz configuration file. Defaults to
-            ``rviz/carla_rviz2` in the ``carla_rviz2`` package.
+        use_sim_time (str): Whether RViz2 should use simulation time via the
+            ``use_sim_time`` parameter. Defaults to ``"true"``.
+        rviz_config (str): Path to the RViz2 configuration file passed to RViz
+            with ``-d``. Defaults to ``rviz/carla_rviz2.rviz`` from this
+            package.
+
+    Started nodes:
+        rviz_node: Runs package ``rviz2``, executable ``rviz2``, node name
+            ``rviz2``, with ``arguments=['-d', rviz_config]`` and the
+            ``use_sim_time`` parameter.
 
     Returns:
-        LaunchDescription: A ROS 2 launch description containing the declared
-        launch arguments and the RViz2 node action.
-
+        LaunchDescription: Launch actions for argument declaration and RViz2
+        startup.
     """
     # <!-- Packages shared -->
     carla_rviz2_pkg = FindPackageShare('carla_rviz2')

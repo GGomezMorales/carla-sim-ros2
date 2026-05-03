@@ -7,40 +7,46 @@ from launch_ros.substitutions import FindPackageShare
 
 def generate_launch_description():
     """
-    Generate the ROS 2 launch description for the CARLA ROS bridge with an example ego vehicle.
+    Create the CARLA bridge and example ego vehicle launch description.
 
-    This launch file starts the CARLA ROS bridge, spawns an example ego vehicle
-    using ``carla_spawn_objects``, and brings up the ``carla_manual_control`` node.
-    It declares configurable launch arguments to control the connection to the
-    CARLA simulator, the ego vehicle properties, and the simulation behavior.
+    The launch description declares connection, vehicle, map, and simulation
+    timing arguments. It then includes launch files from the CARLA ROS bridge
+    ecosystem to connect to a running CARLA simulator, spawn the example ego
+    vehicle described by ``config/objects.json``, and start manual control for
+    the configured ego vehicle role name.
 
     Launch arguments:
-        host (str): Host where the CARLA simulator is running.
-            Defaults to ``"localhost"``.
-        port (str): TCP port of the CARLA simulator.
-            Defaults to ``"2000"``.
-        timeout (str): Connection timeout in seconds.
-            Defaults to ``"10"``.
-        role_name (str): Role name assigned to the ego vehicle.
-            Defaults to ``"ego_vehicle"``.
-        vehicle_filter (str): Blueprint filter used to select the ego vehicle.
-            Defaults to ``"vehicle.*"``.
-        objects_definition_file (str): .
-            Defaults to ``"None"``.
-        town (str): CARLA town/map to load.
-            Defaults to ``"Town01"``.
-        passive (str): Whether the bridge runs in passive mode.
-            Defaults to ``"False"``.
+        host (str): Hostname or IP address of the CARLA simulator. Defaults to
+            ``"localhost"``.
+        port (str): TCP port of the CARLA simulator. Defaults to ``"2000"``.
+        timeout (str): Connection timeout in seconds. Defaults to ``"10"``.
+        role_name (str): Role name assigned to the ego vehicle and used in
+            topic namespaces. Defaults to ``"ego_vehicle"``.
+        vehicle_filter (str): CARLA blueprint filter used by the spawn package
+            to select a vehicle blueprint. Defaults to ``"vehicle.*"``.
+        objects_definition_file (str): JSON object/sensor definition file used
+            by ``carla_spawn_objects``. Defaults to
+            ``config/objects.json`` from this package.
+        town (str): CARLA town/map loaded by the bridge. Defaults to
+            ``"Town01"``.
+        passive (str): Whether the bridge should run in passive mode. Defaults
+            to ``"False"``.
         synchronous_mode_wait_for_vehicle_control_command (str): Whether the
-            bridge waits for vehicle control commands in synchronous mode.
-            Defaults to ``"False"``.
-        fixed_delta_seconds (str): Fixed simulation step in seconds.
-            Defaults to ``"0.05"``.
+            bridge waits for vehicle control commands while in synchronous
+            operation. Defaults to ``"False"``.
+        fixed_delta_seconds (str): Fixed simulation step in seconds used by
+            the bridge timing configuration. Defaults to ``"0.05"``.
+
+    Included launch files:
+        carla_ros_bridge.launch.py: Starts the ROS bridge connection to CARLA.
+        carla_example_ego_vehicle.launch.py: Spawns the ego vehicle and sensors
+            from the selected objects definition file.
+        carla_manual_control.launch.py: Starts manual control for the selected
+            role name.
 
     Returns:
-        LaunchDescription: A ROS 2 launch description containing the declared
-        launch arguments and the CARLA ROS bridge, ego vehicle spawn, and
-        manual control launch includes.
+        LaunchDescription: Ordered launch actions for bridge startup, ego
+        vehicle spawning, and manual control.
     """
 
     ###########################################################################################################

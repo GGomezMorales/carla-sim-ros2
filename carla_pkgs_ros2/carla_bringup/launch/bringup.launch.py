@@ -8,26 +8,39 @@ from launch_ros.substitutions import FindPackageShare
 
 def generate_launch_description():
     """
-    Generate the ROS 2 launch description for the CARLA bringup system.
+    Create the complete CARLA bringup launch description.
 
-    This launch file starts the main CARLA ROS bridge with an example ego vehicle
-    and opens RViz2 using the provided RViz configuration. It also declares
-    configurable launch arguments for simulation time, RViz configuration, and
-    the CARLA town/map to load.
+    The generated launch description declares the public arguments for the
+    top-level bringup entry point, resolves package-share paths, includes the
+    RViz2 and CARLA bridge/ego-vehicle launch files, delays the waypoint
+    publisher to allow the simulation stack to initialize, and starts two
+    repeating ``ros2 topic pub`` processes for target commands.
 
     Launch arguments:
-        use_sim_time (str): Whether nodes should use simulated time.
+        use_sim_time (str): Whether RViz2 should use simulated ROS time.
             Defaults to ``"true"``.
-        rviz_config (str): Path to the RViz2 configuration file.
-            Defaults to the ``carla_rviz2.rviz`` file in the ``carla_bringup``
-            package.
-        town (str): CARLA town/map to load.
+        rviz_config (str): RViz2 configuration file to load. Defaults to
+            ``rviz/carla_rviz2.rviz`` from the ``carla_bringup`` package.
+        town (str): CARLA town/map name forwarded to the bridge launcher.
             Defaults to ``"Town01"``.
 
+    Included launch files:
+        carla_ros_bridge_with_example_ego_vehicle.launch.py: Starts the CARLA
+            ROS bridge, spawns the exampe ego vehicle, and starts manual
+            control through the local intermediate launcher.
+        rviz2.launch.py: Starts RViz2 from the ``carla_rviz2`` package.
+        carla_waypoint_publisher.launch.py: Starts waypoint publishing after
+            the configured timer delay.
+
+    Started processes:
+        target_speed_pub: Publishes ``std_msgs/msg/Float64`` commands to
+            ``/carla/ego_vehicle/target_speed`` at 1 Hz.
+        target_point_pub: Publishes ``geometry_msgs/msg/PoseStamped`` goals to
+            ``/carla/ego_vehicle/goal`` at 0.05 Hz.
+
     Returns:
-        LaunchDescription: A ROS 2 launch description containing the declared
-        launch arguments, the CARLA ROS bridge launch include, and the RViz2
-        launch include.
+        LaunchDescription: Ordered launch actions for the complete CARLA
+        visualization and ego-vehicle bringup stack.
     """
 
     ###########################################################################################################

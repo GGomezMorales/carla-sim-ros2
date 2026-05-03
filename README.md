@@ -163,9 +163,12 @@ Both scripts mount the X11 socket and set the required display environment varia
 Inside the container, run the following once to install dependencies and build:
 
 ```bash
-dros   # install missing ROS dependencies via rosdep
-bros   # build the workspace with colcon
-sros   # source ROS 2 Humble and the workspace overlay
+# install missing ROS dependencies via rosdep
+dros
+# install missing ROS dependencies via rosdep
+bros
+# source ROS 2 Humble and the workspace overlay
+sros
 ```
 
 Then source the workspace again to pick up the freshly built packages:
@@ -205,113 +208,6 @@ To open only RViz2 with the project configuration, use:
 ```bash
 carla_ros2 rviz2
 ```
-
----
-
-### 6. Simple A → B navigation example
-
-This example uses only existing CARLA ROS bridge launch files and ROS 2 CLI commands. It does not require custom launch files, custom nodes, or new Python scripts.
-
-The goal is to move the ego vehicle from its current position **A** to a destination **B**
-
-#### Terminal 1: Start CARLA
-
-```bash
-carla
-```
-
-Leave this terminal running.
-
-#### Terminal 2: Start the ROS bridge with an example ego vehicle
-
-```bash
-ros2 launch carla_ros_bridge carla_ros_bridge_with_example_ego_vehicle.launch.py
-```
-
-Leave this terminal running.
-
-_Alternative_: if you use `carla_ros2 bringup`, this bridge and the waypoint publisher are started together, and RViz2 opens automatically. In that case, you can skip Terminal 2 and Terminal 3 below.
-
-_Optional_: Check that the ego vehicle exists:
-
-```bash
-ros2 topic echo /carla/ego_vehicle/odometry --once
-```
-
-_If this command prints odometry data, the vehicle exists and its current position is point **A**._
-
-#### Terminal 3: Start the waypoint publisher
-
-```bash
-ros2 launch carla_waypoint_publisher carla_waypoint_publisher.launch.py
-```
-
-This node creates the route from **A** to **B**. It does not drive the vehicle by itself.
-
-_Optional_: Check that the waypoint and goal topics exist:
-
-```bash
-ros2 topic list | grep -E "goal|waypoints"
-```
-
-_You should see:_
-
-```bash
-/carla/ego_vehicle/goal
-/carla/ego_vehicle/waypoints
-```
-
-#### Terminal 4: Start the autonomous driving agent
-
-```bash
-ros2 launch carla_ad_agent carla_ad_agent.launch.py role_name:=ego_vehicle avoid_risk:=False
-```
-
-This starts the AD agent and local planner. These nodes convert waypoints into throttle, brake, and steering commands.
-
-_Optional_: Check that the local planner is ready to publish vehicle commands:
-
-```bash
-ros2 topic info /carla/ego_vehicle/vehicle_control_cmd -v
-```
-
-_The output should show:_
-
-```text
-Publisher count: 1
-```
-
-#### Terminal 5: Publish the target speed
-
-Publish the target speed and leave this command running:
-
-```bash
-ros2 topic pub /carla/ego_vehicle/target_speed std_msgs/msg/Float64 "{data: 10.0}" -r 1
-```
-
-This tells the agent to drive at 10 m/s.
-
-#### Terminal 6: Publish the destination B
-
-Publish a goal pose. This is point **B**:
-
-```bash
-ros2 topic pub --once /carla/ego_vehicle/goal geometry_msgs/msg/PoseStamped \
-"{header: {frame_id: 'map'}, pose: {position: {x: 50.0, y: 0.0, z: 0.0}, orientation: {w: 1.0}}}"
-```
-
-The waypoint publisher should now compute a route from the vehicle's current position **A** to the goal position **B**.
-
-## Networking and display
-
-The run scripts start the container with:
-
-- `--net=host` — the container shares the host network stack, so the bridge can reach CARLA on `localhost:2000` without any port mapping.
-- X11 socket mounted at `/tmp/.X11-unix` with the `DISPLAY` and `XAUTHORITY` environment variables forwarded — graphical tools render on the host display.
-- `--privileged` — required for hardware device access (GPU, DRI).
-- `--rm` — the container is removed automatically when it exits.
-
----
 
 ## Known limitations
 
