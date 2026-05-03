@@ -50,8 +50,10 @@ setup_carla_ros2() {
 carla_ros2() {
     if [[ "$1" == "rviz2" && -z "$2" ]]; then
         bros && sros && ros2 launch carla_rviz2 rviz2.launch.py
+    elif [[ "$1" == "bringup" && -z "$2" ]]; then
+        bros && sros && ros2 launch carla_bringup bringup.launch.py
     else
-        echo "Use: carla_ros2 [rviz2]"
+        echo "Use: carla_ros2 [bringup|rviz2]"
     fi
 }
 
@@ -60,7 +62,7 @@ _carla_ros2() {
     local prev="${COMP_WORDS[COMP_CWORD-1]}"
 
     if [[ $COMP_CWORD -eq 1 ]]; then
-        COMPREPLY=( $(compgen -W "rviz2" -- "$cur") )
+        COMPREPLY=( $(compgen -W "bringup rviz2" -- "$cur") )
     fi
 }
 complete -F _carla_ros2 carla_ros2
