@@ -16,6 +16,7 @@ docker run --privileged --rm -it \
     -e XAUTHORITY \
     -v /tmp/.X11-unix:/tmp/.X11-unix \
     -v $XAUTHORITY:$XAUTHORITY \
+    --volume="${PROJECT_ROOT}/carla_pkgs_ros2:/${WS_ROS}/src/carla_pkgs_ros2" \
     --ipc="host" \
     --net=host \
     -t \
