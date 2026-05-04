@@ -60,6 +60,14 @@ Direct launch, when already built and sourced:
 ros2 launch carla_bringup bringup.launch.py
 ```
 
+Start the autonomous driving agent in another terminal:
+
+```bash
+ros2 launch carla_ad_agent carla_ad_agent.launch.py role_name:=ego_vehicle avoid_risk:=False
+```
+
+Starts the AD agent and local planner. These nodes convert waypoints into throttle, brake, and steering commands.
+
 ---
 
 ## Launch files
