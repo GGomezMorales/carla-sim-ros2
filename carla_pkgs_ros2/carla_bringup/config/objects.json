@@ -81,8 +81,8 @@
                     },
                     "range": 50,
                     "channels": 32,
-                    "points_per_second": 320000,
-                    "upper_fov": 2.0,
+                    "points_per_second": 400000,
+                    "upper_fov": 10.0,
                     "lower_fov": -26.8,
                     "rotation_frequency": 20,
                     "noise_stddev": 0.0
@@ -100,8 +100,8 @@
                     },
                     "range": 50,
                     "channels": 32,
-                    "points_per_second": 320000,
-                    "upper_fov": 2.0,
+                    "points_per_second": 400000,
+                    "upper_fov": 10.0,
                     "lower_fov": -26.8,
                     "rotation_frequency": 20
                 },
