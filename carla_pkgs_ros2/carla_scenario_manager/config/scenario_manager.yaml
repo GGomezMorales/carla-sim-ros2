@@ -1,0 +1,34 @@
+carla_scenario_manager:
+  ros__parameters:
+    carla.host: localhost
+    carla.port: 2000
+    carla.timeout: 5.0
+
+    target_town: Town01
+    target_actor_id: 1
+    status.publish_rate_hz: 1.0
+
+    weather.profile: ClearNoon
+    weather.cloudiness: 0.0
+    weather.precipitation: 0.0
+    weather.precipitation_deposits: 0.0
+    weather.wind_intensity: 0.0
+    weather.sun_azimuth_angle: 0.0
+    weather.sun_altitude_angle: 45.0
+    weather.fog_density: 0.0
+    weather.fog_distance: 0.0
+    weather.wetness: 0.0
+
+    spawn.blueprint_filter: vehicle.*
+    spawn.role_name: scenario_vehicle
+    spawn.use_random_spawn: true
+    spawn.spawn_point_index: 0
+    spawn.autopilot: false
+    spawn.x: 0.0
+    spawn.y: 0.0
+    spawn.z: 0.5
+    spawn.roll: 0.0
+    spawn.pitch: 0.0
+    spawn.yaw: 0.0
+
+    scenario.active_name: default_scenario
